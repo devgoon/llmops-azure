@@ -48,6 +48,9 @@ start-all:
 	@echo "📝 Creating test chats..."
 	@./scripts/create_test_chats.sh
 	@echo ""
+	@echo "📊 Analyzing metrics..."
+	@make analyze
+	@echo ""
 	@echo "✅ Everything is ready!"
 	@echo ""
 	@echo "📊 Dashboard: http://127.0.0.1:5000"
