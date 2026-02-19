@@ -2,7 +2,7 @@
 
 A **minimal, low‑cost LLMOps starter** you can run on your laptop and optionally deploy to **Azure Container Apps**. It favors:
 
-- Local dev with **Ollama** *or* **vLLM**
+- Local dev with **Ollama** (CPU-friendly)
 - **ChromaDB** for local vector search (RAG)
 - **FastAPI** service you can run locally or deploy to Azure (CPU)
 - **MLflow** for experiment tracking (local or Azure-backed)
@@ -15,7 +15,7 @@ A **minimal, low‑cost LLMOps starter** you can run on your laptop and optional
 ## ✨ Features
 
 - **Local‑first** development (no cloud required)
-- Pluggable **model serving**: Ollama (simple) or vLLM (fast, OpenAI‑compatible)
+- **Ollama** local model serving (simple, CPU-friendly)
 - **RAG‑ready** app scaffold (slots to add Chroma/embeddings)
 - **Experiment tracking** with MLflow (file store by default)
 - **Cheap Azure deployment** (CPU) + optional **ephemeral GPU job** pattern
@@ -58,8 +58,7 @@ A **minimal, low‑cost LLMOps starter** you can run on your laptop and optional
 - **Docker** (optional, for container runs)
 - **Azure CLI** (`az`) if deploying to Azure
 - Optional local serving:
-  - **Ollama** (quickest start), or
-  - **vLLM** (GPU‑accelerated, OpenAI‑compatible API)
+  - **Ollama** (quickest start, CPU-friendly)
 
 > Tip: keep local MLflow (file store) and only use Azure Blob for artifacts when you need remote sharing.
 
@@ -91,7 +90,7 @@ curl -s -X POST http://127.0.0.1:8000/chat -H 'Content-Type: application/json' \
   -d '{"prompt":"Explain retrieval-augmented generation in one paragraph."}' | jq
 ```
 
-You can also point the API at a **vLLM** server by setting `VLLM_OPENAI_BASE_URL` and `VLLM_API_KEY` instead of `OLLAMA_BASE_URL`.
+The API expects `OLLAMA_BASE_URL` to be set when running locally.
 
 ---
 
@@ -177,7 +176,7 @@ The workflow will:
 ```mermaid
 flowchart LR
   subgraph Local[Local Dev]
-    OLL["Ollama / vLLM"]
+    OLL["Ollama"]
     APP["FastAPI (backend/api)"]
     VEC["ChromaDB"]
     MLF["MLflow (file store)"]
