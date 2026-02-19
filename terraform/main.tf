@@ -31,6 +31,10 @@ resource "azurerm_container_app" "app" {
   ingress {
     external_enabled = true
     target_port      = var.target_port
+
+    traffic_weight {
+      percentage = 100
+    }
   }
 
   secret {
