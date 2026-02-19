@@ -6,16 +6,12 @@ on:
   workflow_dispatch:
 
 env:
-  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-  LOCATION: ${{ vars.AZURE_LOCATION }}
-  CONTAINERAPPS_ENVIRONMENT: ${{ vars.AZURE_CONTAINERAPPS_ENV }}
-  CONTAINERAPP_NAME: ${{ vars.AZURE_CONTAINERAPP_NAME }}
-  ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
-  TFSTATE_RESOURCE_GROUP: ${{ vars.AZURE_TFSTATE_RG }}
-  TFSTATE_STORAGE_ACCOUNT: ${{ vars.AZURE_TFSTATE_STORAGE }}
-  TFSTATE_CONTAINER: ${{ vars.AZURE_TFSTATE_CONTAINER }}
+  TFSTATE_RESOURCE_GROUP: my-llmops-rg
+  TFSTATE_STORAGE_ACCOUNT: tfllmops
+  TFSTATE_CONTAINER: tfstate
   TFSTATE_KEY: llmops-azure.tfstate
   TF_DIR: terraform
+  ACR_NAME: acrllmops
   IMAGE_NAME: llmops-api
   IMAGE_TAG: ${{ github.sha }}
 
@@ -61,11 +57,6 @@ jobs:
         run: |
           set -euo pipefail
           terraform -chdir="$TF_DIR" apply -auto-approve \
-            -var "resource_group_name=$RESOURCE_GROUP" \
-            -var "location=$LOCATION" \
-            -var "acr_name=$ACR_NAME" \
-            -var "containerapp_env_name=$CONTAINERAPPS_ENVIRONMENT" \
-            -var "containerapp_name=$CONTAINERAPP_NAME" \
             -var "container_app_enabled=false"
 
       - name: Build and push image to ACR
@@ -89,11 +80,7 @@ jobs:
           set -euo pipefail
           IMAGE_URI="${{ steps.image.outputs.image_uri }}"
           terraform -chdir="$TF_DIR" apply -auto-approve \
-            -var "resource_group_name=$RESOURCE_GROUP" \
-            -var "location=$LOCATION" \
-            -var "acr_name=$ACR_NAME" \
-            -var "containerapp_env_name=$CONTAINERAPPS_ENVIRONMENT" \
-            -var "containerapp_name=$CONTAINERAPP_NAME" \
+
             -var "container_app_enabled=true" \
             -var "image_uri=$IMAGE_URI"
 

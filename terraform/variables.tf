@@ -1,21 +1,26 @@
 variable "resource_group_name" {
-  type = string
+  type    = string
+  default = "my-llmops-rg"
 }
 
 variable "location" {
-  type = string
+  type    = string
+  default = "eastus"
 }
 
 variable "acr_name" {
-  type = string
+  type    = string
+  default = "acrllmops"
 }
 
 variable "containerapp_env_name" {
-  type = string
+  type    = string
+  default = "llmops-env"
 }
 
 variable "containerapp_name" {
-  type = string
+  type    = string
+  default = "llmops-api"
 }
 
 variable "image_uri" {
