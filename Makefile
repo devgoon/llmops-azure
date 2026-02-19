@@ -4,7 +4,7 @@ TFSTATE_STORAGE_ACCOUNT := tfllmops
 TFSTATE_CONTAINER := tfstate
 TFSTATE_KEY := llmops-azure.tfstate
 
-.PHONY: terraform-init terraform-apply-infra terraform-apply-app deploy run-local mlflow-ui
+.PHONY: terraform-init terraform-apply-infra terraform-apply-app deploy run-local mlflow-ui test-chats
 
 terraform-init:
 	terraform -chdir=$(TF_DIR) init \
@@ -31,3 +31,6 @@ run-local:
 
 mlflow-ui:
 	mlflow ui --host 127.0.0.1 --port 5000
+
+test-chats:
+	./scripts/create_test_chats.sh
