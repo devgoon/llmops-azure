@@ -78,13 +78,17 @@ pip install -r backend/api/requirements.txt
 ollama pull llama3
 ```
 
-3) **Run the API**:
+3) **Create local env file**:
 ```bash
-export OLLAMA_BASE_URL=http://localhost:11434  # if using Ollama
+cp .env.local.example .env.local
+```
+
+4) **Run the API**:
+```bash
 uvicorn backend.api.main:app --reload --port 8000
 ```
 
-4) **Call the service**:
+5) **Call the service**:
 ```bash
 curl -s -X POST http://127.0.0.1:8000/chat -H 'Content-Type: application/json' \
   -d '{"prompt":"Explain retrieval-augmented generation in one paragraph."}' | jq
@@ -131,7 +135,7 @@ export GITHUB_BRANCH=main
 ./scripts/bootstrap_azure.sh
 ```
 
-You can also put these values in `.env.local` instead of exporting them. Start from `.env.local.example`.
+You can also put these values in `.env.bootstrap` instead of exporting them. Start from `.env.bootstrap.example`.
 
 ### GitHub Actions deployment
 

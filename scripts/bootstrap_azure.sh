@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ENV_FILE="$REPO_ROOT/.env"
+ENV_FILE="$REPO_ROOT/.env.bootstrap"
 
 if [[ -f "$ENV_FILE" ]]; then
   set -a
@@ -23,7 +23,7 @@ GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
 FED_NAME="${FED_NAME:-github-actions-main}"
 
 if [[ -z "$SUBSCRIPTION_ID" ]]; then
-  echo "Missing SUBSCRIPTION_ID. Set it in .env or export before running."
+  echo "Missing SUBSCRIPTION_ID. Set it in .env.bootstrap or export before running."
   exit 1
 fi
 
