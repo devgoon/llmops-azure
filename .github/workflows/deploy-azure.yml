@@ -41,6 +41,14 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Register Azure resource providers
+        shell: bash
+        run: |
+          echo "Registering Microsoft.App provider..."
+          az provider register --namespace Microsoft.App --wait
+          echo "Registering Microsoft.OperationalInsights provider..."
+          az provider register --namespace Microsoft.OperationalInsights --wait
+
       - name: Terraform init
         shell: bash
         run: |
