@@ -12,6 +12,16 @@ if [[ -f "$ENV_FILE" ]]; then
 	set +a
 fi
 
+if [[ -z "${OLLAMA_BASE_URL:-}" ]]; then
+	echo "OLLAMA_BASE_URL is not set. Add it to .env or export it before running."
+	exit 1
+fi
+
+if ! curl -fsS "${OLLAMA_BASE_URL%/}/api/tags" >/dev/null 2>&1; then
+	echo "Ollama is not reachable at $OLLAMA_BASE_URL. Start Ollama first."
+	exit 1
+fi
+
 python -m venv .venv
 source .venv/bin/activate
 pip install -r backend/api/requirements.txt
