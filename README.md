@@ -122,16 +122,16 @@ Follow: `azure/storage/create_blob.md` then `azure/aca/deploy.md`.
 ```mermaid
 flowchart LR
   subgraph Local[Local Dev]
-    OLL[Ollama / vLLM]
-    APP[FastAPI (backend/api)]
-    VEC[ChromaDB]
-    MLF[MLflow (file store)]
+    OLL["Ollama / vLLM"]
+    APP["FastAPI (backend/api)"]
+    VEC["ChromaDB"]
+    MLF["MLflow (file store)"]
   end
 
   subgraph Azure[Azure]
-    BLOB[(Blob Storage\nartifacts,datasets)]
-    ACA[Container Apps\nCPU API]
-    JOB[ACA Jobs\nGPU on-demand]
+    BLOB[("Blob Storage<br/>artifacts, datasets")]
+    ACA["Container Apps<br/>CPU API"]
+    JOB["ACA Jobs<br/>GPU on-demand"]
   end
 
   APP <---> OLL
