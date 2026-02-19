@@ -108,6 +108,8 @@ python mlops/track_example.py
 ```
 Artifacts and run metadata go into `./mlruns/` by default. To use a remote/managed MLflow, set `MLFLOW_TRACKING_URI` and `MLFLOW_ARTIFACT_URI` (e.g., to Azure Blob) before running the script.
 
+To log API requests to MLflow, set `MLFLOW_ENABLED=1` and optionally `MLFLOW_EXPERIMENT` in `.env.local`.
+
 ---
 
 ## ☁️ Azure (cheap) deployment
