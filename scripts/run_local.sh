@@ -4,22 +4,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_FILE_LOCAL="$REPO_ROOT/.env.local"
-ENV_FILE="$REPO_ROOT/.env"
 
 if [[ -f "$ENV_FILE_LOCAL" ]]; then
 	set -a
 	# shellcheck source=/dev/null
 	source "$ENV_FILE_LOCAL"
 	set +a
-elif [[ -f "$ENV_FILE" ]]; then
-	set -a
-	# shellcheck source=/dev/null
-	source "$ENV_FILE"
-	set +a
+else
+	echo "Missing .env.local. Copy .env.local.example to .env.local and edit as needed."
 fi
 
 if [[ -z "${OLLAMA_BASE_URL:-}" ]]; then
-	echo "OLLAMA_BASE_URL is not set. Add it to .env or export it before running."
+	echo "OLLAMA_BASE_URL is not set. Add it to .env.local or export it before running."
 	exit 1
 fi
 
