@@ -42,10 +42,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          az group create \
-            --name "$RESOURCE_GROUP" \
-            --location "$LOCATION" \
-            --output none
+          SUB_ID=$(az account show --query id -o tsv)
+          RG_URL="https://management.azure.com/subscriptions/${SUB_ID}/resourcegroups/${RESOURCE_GROUP}?api-version=2023-07-01"
+
+          if ! az rest --method get --url "$RG_URL" >/dev/null 2>&1; then
+            az rest \
+              --method put \
+              --url "$RG_URL" \
+              --body "{\"location\": \"${LOCATION}\"}" \
+              >/dev/null
+          fi
 
           if ! az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
             az acr create \
