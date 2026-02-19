@@ -42,10 +42,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          az group create \
-            --name "$RESOURCE_GROUP" \
-            --location "$LOCATION" \
-            --output none
+          if ! az group show --name "$RESOURCE_GROUP" --output none 2>/dev/null; then
+            echo "Resource group $RESOURCE_GROUP not found. Create it before running this workflow."
+            exit 1
+          fi
 
           if ! az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
             az acr create \
