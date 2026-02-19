@@ -4,7 +4,7 @@ TFSTATE_STORAGE_ACCOUNT := tfllmops
 TFSTATE_CONTAINER := tfstate
 TFSTATE_KEY := llmops-azure.tfstate
 
-.PHONY: terraform-init terraform-apply-infra terraform-apply-app deploy
+.PHONY: terraform-init terraform-apply-infra terraform-apply-app deploy run-local
 
 terraform-init:
 	terraform -chdir=$(TF_DIR) init \
@@ -25,3 +25,6 @@ terraform-apply-app: terraform-init
 
 # Runs infra apply; build/push and app apply are handled by GitHub Actions.
 deploy: terraform-apply-infra
+
+run-local:
+	./scripts/run_local.sh
