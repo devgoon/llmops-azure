@@ -11,6 +11,11 @@ env:
   CONTAINERAPPS_ENVIRONMENT: ${{ vars.AZURE_CONTAINERAPPS_ENV }}
   CONTAINERAPP_NAME: ${{ vars.AZURE_CONTAINERAPP_NAME }}
   ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+  TFSTATE_RESOURCE_GROUP: ${{ vars.AZURE_TFSTATE_RG }}
+  TFSTATE_STORAGE_ACCOUNT: ${{ vars.AZURE_TFSTATE_STORAGE }}
+  TFSTATE_CONTAINER: ${{ vars.AZURE_TFSTATE_CONTAINER }}
+  TFSTATE_KEY: llmops-azure.tfstate
+  TF_DIR: terraform
   IMAGE_NAME: llmops-api
   IMAGE_TAG: ${{ github.sha }}
 
@@ -21,6 +26,11 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,50 +42,31 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Ensure CLI extensions
-        run: |
-          az config set extension.use_dynamic_install=yes_without_prompt
-          az config set core.resource_group_api_version=2025-03-01 || true
-          az extension add --name containerapp --upgrade
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
 
-      - name: Ensure resource group, ACR, and Container Apps environment
+      - name: Terraform init
         shell: bash
         run: |
           set -euo pipefail
+          terraform -chdir="$TF_DIR" init \
+            -backend-config="resource_group_name=$TFSTATE_RESOURCE_GROUP" \
+            -backend-config="storage_account_name=$TFSTATE_STORAGE_ACCOUNT" \
+            -backend-config="container_name=$TFSTATE_CONTAINER" \
+            -backend-config="key=$TFSTATE_KEY" \
+            -backend-config="use_azuread_auth=true"
 
-          SUB_ID=$(az account show --query id -o tsv)
-          RG_URL="https://management.azure.com/subscriptions/${SUB_ID}/resourcegroups/${RESOURCE_GROUP}?api-version=2023-07-01"
-
-          if ! az rest --method get --url "$RG_URL" >/dev/null 2>&1; then
-            az rest \
-              --method put \
-              --url "$RG_URL" \
-              --body "{\"location\": \"${LOCATION}\"}" \
-              >/dev/null
-          fi
-
-          if ! az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
-            az acr create \
-              --name "$ACR_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --sku Basic \
-              --admin-enabled true \
-              --output none
-          else
-            az acr update \
-              --name "$ACR_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --admin-enabled true \
-              --output none
-          fi
-
-          if ! az containerapp env show --name "$CONTAINERAPPS_ENVIRONMENT" --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
-            az containerapp env create \
-              --name "$CONTAINERAPPS_ENVIRONMENT" \
-              --resource-group "$RESOURCE_GROUP" \
-              --location "$LOCATION" \
-              --output none
-          fi
+      - name: Terraform apply (infra)
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform -chdir="$TF_DIR" apply -auto-approve \
+            -var "resource_group_name=$RESOURCE_GROUP" \
+            -var "location=$LOCATION" \
+            -var "acr_name=$ACR_NAME" \
+            -var "containerapp_env_name=$CONTAINERAPPS_ENVIRONMENT" \
+            -var "containerapp_name=$CONTAINERAPP_NAME" \
+            -var "container_app_enabled=false"
 
       - name: Build and push image to ACR
         id: image
@@ -83,7 +74,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query loginServer -o tsv)
+          ACR_LOGIN_SERVER=$(terraform -chdir="$TF_DIR" output -raw acr_login_server)
           IMAGE_URI="$ACR_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
 
           az acr login --name "$ACR_NAME"
@@ -92,50 +83,24 @@ jobs:
 
           echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy Container App (create or update)
+      - name: Terraform apply (container app)
         shell: bash
         run: |
           set -euo pipefail
-
           IMAGE_URI="${{ steps.image.outputs.image_uri }}"
-          ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query loginServer -o tsv)
-          ACR_USERNAME=$(az acr credential show --name "$ACR_NAME" --query username -o tsv)
-          ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query passwords[0].value -o tsv)
-
-          if az containerapp show --name "$CONTAINERAPP_NAME" --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
-            az containerapp registry set \
-              --name "$CONTAINERAPP_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --server "$ACR_LOGIN_SERVER" \
-              --username "$ACR_USERNAME" \
-              --password "$ACR_PASSWORD" \
-              --output none
-
-            az containerapp update \
-              --name "$CONTAINERAPP_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --image "$IMAGE_URI" \
-              --output none
-          else
-            az containerapp create \
-              --name "$CONTAINERAPP_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --environment "$CONTAINERAPPS_ENVIRONMENT" \
-              --image "$IMAGE_URI" \
-              --ingress external \
-              --target-port 8000 \
-              --min-replicas 0 \
-              --max-replicas 1 \
-              --cpu 0.25 \
-              --memory 0.5Gi \
-              --registry-server "$ACR_LOGIN_SERVER" \
-              --registry-username "$ACR_USERNAME" \
-              --registry-password "$ACR_PASSWORD" \
-              --output none
-          fi
+          terraform -chdir="$TF_DIR" apply -auto-approve \
+            -var "resource_group_name=$RESOURCE_GROUP" \
+            -var "location=$LOCATION" \
+            -var "acr_name=$ACR_NAME" \
+            -var "containerapp_env_name=$CONTAINERAPPS_ENVIRONMENT" \
+            -var "containerapp_name=$CONTAINERAPP_NAME" \
+            -var "container_app_enabled=true" \
+            -var "image_uri=$IMAGE_URI"
 
       - name: Show app URL
         shell: bash
         run: |
-          FQDN=$(az containerapp show --name "$CONTAINERAPP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)
-          echo "Deployed URL: https://$FQDN"
+          FQDN=$(terraform -chdir="$TF_DIR" output -raw container_app_fqdn)
+          if [[ -n "$FQDN" ]]; then
+            echo "Deployed URL: https://$FQDN"
+          fi

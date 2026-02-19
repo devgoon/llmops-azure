@@ -126,6 +126,9 @@ Set these **Repository Variables** in GitHub:
 - `AZURE_CONTAINERAPPS_ENV`
 - `AZURE_CONTAINERAPP_NAME`
 - `AZURE_ACR_NAME` (must be globally unique in Azure)
+- `AZURE_TFSTATE_RG` (resource group containing the tfstate storage account)
+- `AZURE_TFSTATE_STORAGE` (storage account name, example: `llmops`)
+- `AZURE_TFSTATE_CONTAINER` (container name, example: `tfstate`)
 
 Set these **Repository Secrets** for OIDC auth:
 - `AZURE_CLIENT_ID`
@@ -137,10 +140,13 @@ OIDC setup (one-time in Azure):
 - Add a Federated Credential for GitHub Actions (repo + branch)
 - Grant the app `Contributor` on the target resource group
 
+Terraform state:
+- Ensure the storage account and container for tfstate already exist in Azure
+
 The workflow will:
-- ensure Resource Group / ACR / Container Apps Environment exist
+- run Terraform to provision Resource Group / ACR / Container Apps Environment
 - build and push Docker image to ACR
-- create or update the Azure Container App
+- apply Terraform to create or update the Azure Container App
 
 ---
 
