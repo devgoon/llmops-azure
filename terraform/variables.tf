@@ -25,7 +25,7 @@ variable "containerapp_name" {
 
 variable "image_uri" {
   type    = string
-  default = ""
+  default = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
 }
 
 variable "container_app_enabled" {
