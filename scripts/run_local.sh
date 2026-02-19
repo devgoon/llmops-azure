@@ -18,8 +18,25 @@ if [[ -z "${OLLAMA_BASE_URL:-}" ]]; then
 fi
 
 if ! curl -fsS "${OLLAMA_BASE_URL%/}/api/tags" >/dev/null 2>&1; then
-	echo "Ollama is not reachable at $OLLAMA_BASE_URL. Start Ollama first."
-	exit 1
+	if ! command -v ollama >/dev/null 2>&1; then
+		echo "Ollama is not reachable at $OLLAMA_BASE_URL and 'ollama' is not on PATH."
+		exit 1
+	fi
+
+	echo "Starting Ollama..."
+	nohup ollama serve >/tmp/ollama.log 2>&1 &
+
+	for _ in {1..20}; do
+		if curl -fsS "${OLLAMA_BASE_URL%/}/api/tags" >/dev/null 2>&1; then
+			break
+		fi
+		sleep 0.5
+	done
+
+	if ! curl -fsS "${OLLAMA_BASE_URL%/}/api/tags" >/dev/null 2>&1; then
+		echo "Ollama failed to start. Check /tmp/ollama.log."
+		exit 1
+	fi
 fi
 
 python -m venv .venv
