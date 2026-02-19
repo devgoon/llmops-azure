@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import os
 import time
 import httpx
+import re
 
 app = FastAPI(title="LLMOps Azure + Standalone API", version="0.1.0")
 
@@ -14,6 +15,11 @@ class ChatRequest(BaseModel):
 
 def _mlflow_enabled() -> bool:
     return os.getenv("MLFLOW_ENABLED", "").lower() in {"1", "true", "yes"}
+
+
+def _count_tokens(text: str) -> int:
+    """Rough token count: split by spaces/punctuation."""
+    return len(re.findall(r'\b\w+\b', text))
 
 
 def _log_mlflow(params: dict, metrics: dict) -> None:
@@ -39,6 +45,7 @@ async def health():
 async def chat(req: ChatRequest):
     ollama_base = os.getenv("OLLAMA_BASE_URL")
     start_time = time.time()
+    input_tokens = _count_tokens(req.prompt)
 
     if ollama_base:
         # Ollama local API
@@ -55,33 +62,49 @@ async def chat(req: ChatRequest):
                 r.raise_for_status()
                 data = r.json()
         except Exception as exc:
+            elapsed = time.time() - start_time
             _log_mlflow(
                 {
                     "backend": "ollama",
                     "model": payload["model"],
                     "temperature": payload["options"]["temperature"],
                     "prompt_length": len(req.prompt),
+                    "input_tokens": input_tokens,
                 },
                 {
-                    "latency_ms": (time.time() - start_time) * 1000,
+                    "latency_ms": elapsed * 1000,
+                    "latency_sec": elapsed,
                     "success": 0,
+                    "input_tokens": input_tokens,
+                    "output_tokens": 0,
+                    "total_tokens": input_tokens,
                 },
             )
             raise HTTPException(status_code=500, detail=str(exc))
 
+        output_text = data.get("response", "")
+        output_tokens = _count_tokens(output_text)
+        elapsed = time.time() - start_time
+        
         _log_mlflow(
             {
                 "backend": "ollama",
                 "model": payload["model"],
                 "temperature": payload["options"]["temperature"],
                 "prompt_length": len(req.prompt),
+                "input_tokens": input_tokens,
             },
             {
-                "latency_ms": (time.time() - start_time) * 1000,
+                "latency_ms": elapsed * 1000,
+                "latency_sec": elapsed,
                 "success": 1,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
+                "tokens_per_second": output_tokens / elapsed if elapsed > 0 else 0,
             },
         )
-        return {"model": payload["model"], "output": data.get("response", r.text)}
+        return {"model": payload["model"], "output": output_text}
 
     else:
         raise HTTPException(status_code=400, detail="Set OLLAMA_BASE_URL env var.")
