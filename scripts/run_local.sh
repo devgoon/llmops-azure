@@ -42,4 +42,6 @@ fi
 python -m venv .venv
 source .venv/bin/activate
 pip install -r backend/api/requirements.txt
-uvicorn backend.api.main:app --reload --port 8000
+APP_HOST="${APP_HOST:-127.0.0.1}"
+APP_PORT="${APP_PORT:-8000}"
+uvicorn backend.api.main:app --reload --host "$APP_HOST" --port "$APP_PORT"
