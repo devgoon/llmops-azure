@@ -1,24 +1,23 @@
 # LLMOps – Azure + Standalone (Local‑First)
 
-A **minimal, low‑cost LLMOps starter** you can run on your laptop and optionally deploy to **Azure Container Apps**. It favors:
+
+A **minimal, low‑cost LLMOps starter** you can run 100% on your laptop. It favors:
 
 - Local dev with **Ollama** (CPU-friendly)
 - **ChromaDB** for local vector search (RAG)
-- **FastAPI** service you can run locally or deploy to Azure (CPU)
-- **MLflow** for experiment tracking (local or Azure-backed)
-- **Azure Blob Storage** for artifacts (cheap), optional **ACA Jobs (GPU)** for on‑demand fine‑tunes
+- **FastAPI** service you can run locally
+- **MLflow** for experiment tracking (local file store)
 
-> Goal: learn and ship LLM apps without racking up cloud bills.
+> Goal: learn and ship LLM apps without cloud costs or complexity.
 
 ---
 
 ## ✨ Features
 
-- **Local‑first** development (no cloud required)
+- **Local‑only** development (no cloud required)
 - **Ollama** local model serving (simple, CPU-friendly)
 - **RAG‑ready** app scaffold (slots to add Chroma/embeddings)
 - **Experiment tracking** with MLflow (file store by default)
-- **Cheap Azure deployment** (CPU) + optional **ephemeral GPU job** pattern
 
 ---
 
@@ -39,17 +38,12 @@ A **minimal, low‑cost LLMOps starter** you can run on your laptop and optional
 │  ├─ run_local.sh          # Start FastAPI locally
 │  ├─ create_test_chats.sh  # Generate test requests for benchmarking
 │  └─ set_env_example.sh    # Example env vars
-├─ azure/
-│  ├─ aca/
-│  │  ├─ deploy.md          # Step-by-step Azure deployment (cheap)
-│  │  └─ deploy.sh          # Helper script (az CLI)
-│  └─ storage/
-│     └─ create_blob.md     # Create Storage Account + container
+├─ docker/
+│  └─ Dockerfile            # Container for backend/api
 ├─ docker/
 │  └─ Dockerfile            # Container for backend/api
 ├─ Makefile                 # Task automation (start-all, analyze, etc.)
 ├─ .env.local.example       # Local app config template
-├─ .env.bootstrap.example   # Azure bootstrap config template
 ├─ .gitignore
 ├─ LICENSE
 └─ README.md
@@ -61,11 +55,7 @@ A **minimal, low‑cost LLMOps starter** you can run on your laptop and optional
 
 - **Python 3.11+**, **pip**
 - **Docker** (optional, for container runs)
-- **Azure CLI** (`az`) if deploying to Azure
-- Optional local serving:
-  - **Ollama** (quickest start, CPU-friendly)
-
-> Tip: keep local MLflow (file store) and only use Azure Blob for artifacts when you need remote sharing.
+- **Ollama** (quickest start, CPU-friendly)
 
 ---
 
@@ -182,94 +172,9 @@ Artifacts and metadata go into `./mlruns/` by default. To use remote MLflow, set
 
 ---
 
-## ☁️ Azure (cheap) deployment
 
-- **Blob Storage**: pennies per GB — store datasets, artifacts, and static assets.
-- **Container Apps (CPU)**: scale‑to‑zero and low monthly costs for hobby use.
-- **Container Apps Jobs (GPU)**: only spin up when needed for heavy tasks.
 
-Follow: `azure/storage/create_blob.md` then `azure/aca/deploy.md`.
 
-### Azure bootstrap (one-time)
-
-Run the bootstrap script to register providers, create the tfstate storage, and set up OIDC:
-```bash
-az login
-export SUBSCRIPTION_ID=00000000-0000-0000-0000-000000000000
-export RESOURCE_GROUP=my-llmops-rg
-export LOCATION=eastus
-export TFSTATE_STORAGE_ACCOUNT=tfllmops
-export TFSTATE_CONTAINER=tfstate
-export APP_NAME=gha-llmops-azure
-export GITHUB_REPO=devgoon/llmops-azure
-export GITHUB_BRANCH=main
-
-./scripts/bootstrap_azure.sh
-```
-
-You can also put these values in `.env.bootstrap` instead of exporting them. Start from `.env.bootstrap.example`.
-
-### GitHub Actions deployment
-
-This repo includes [`.github/workflows/deploy-azure.yml`](.github/workflows/deploy-azure.yml) to automatically deploy on every push to `main` (and via manual trigger).
-For pull requests, [`.github/workflows/pr-ci.yml`](.github/workflows/pr-ci.yml) runs build-only checks (Python compile + Docker build) without deploying.
-
-Configuration is file-based for portability:
-- Defaults live in terraform/variables.tf
-- Optional local overrides go in terraform/terraform.tfvars (see terraform/terraform.tfvars.example)
-- Workflow settings (resource names + tfstate backend) live at the top of .github/workflows/deploy-azure.yml
-- The workflow uses TF_VAR_* environment variables to pass settings into Terraform
-
-Local infra apply (same defaults):
-```bash
-make deploy
-```
-
-Make sure your ACR name is globally unique in Azure (update both terraform/variables.tf and deploy-azure.yml if you change it).
-
-Set these **Repository Secrets** for OIDC auth:
-- `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
-
-OIDC setup (one-time in Azure):
-- Create an App Registration (service principal)
-- Add a Federated Credential for GitHub Actions (repo + branch)
-- Grant the app `Contributor` on the target resource group
-
-Terraform state:
-- Ensure the storage account and container for tfstate already exist in Azure
-
-The workflow will:
-- run Terraform to provision Resource Group / ACR / Container Apps Environment
-- build and push Docker image to ACR
-- apply Terraform to create or update the Azure Container App
-
----
-
-## 🧭 Architecture (Mermaid)
-
-```mermaid
-flowchart LR
-  subgraph Local[Local Dev]
-    OLL["Ollama"]
-    APP["FastAPI (backend/api)"]
-    VEC["ChromaDB"]
-    MLF["MLflow (file store)"]
-  end
-
-  subgraph Azure[Azure]
-    BLOB[("Blob Storage<br/>artifacts, datasets")]
-    ACA["Container Apps<br/>CPU API"]
-    JOB["ACA Jobs<br/>GPU on-demand"]
-  end
-
-  APP <---> OLL
-  APP <---> VEC
-  APP -->|optional deploy| ACA
-  MLF --> BLOB
-  JOB -. on demand .- BLOB
-```
 
 ---
 
@@ -287,16 +192,8 @@ flowchart LR
 - Add cost estimation metrics (tokens × price per model)
 - Compare different Ollama models (mistral, neural-chat, etc.)
 
-### Scaling & Deployment
-- Point MLflow to Azure Blob for persistent artifact storage
-- Deploy API to Azure Container Apps (CPU for inference)
-- Set up ACA Jobs (GPU) for model fine-tuning via batch requests
-- Add GitHub Actions CI/CD (already configured in `.github/workflows/`)
-
 ---
 ## ⚙️ Environment Configuration
-
-Two separate configs keep concerns isolated:
 
 ### `.env.local` — Local App Runtime
 For running the API locally. Includes:
@@ -310,17 +207,7 @@ Start from `.env.local.example`:
 cp .env.local.example .env.local
 ```
 
-### `.env.bootstrap` — Azure Infrastructure Setup
-For one-time Azure bootstrap and Terraform state. Used by:
-- `scripts/bootstrap_azure.sh` — Register providers, create tfstate storage
-- `Makefile deploy` — Terraform apply
-
-Start from `.env.bootstrap.example`:
-```bash
-cp .env.bootstrap.example .env.bootstrap
-```
-
-Both are Git-ignored for security.
+This file is Git-ignored for security.
 
 ---
 
