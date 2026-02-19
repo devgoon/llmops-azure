@@ -131,7 +131,7 @@ export GITHUB_BRANCH=main
 ./scripts/bootstrap_azure.sh
 ```
 
-You can also put these values in `.env` instead of exporting them.
+You can also put these values in `.env.local` instead of exporting them. Start from `.env.local.example`.
 
 ### GitHub Actions deployment
 
