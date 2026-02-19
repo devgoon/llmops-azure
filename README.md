@@ -124,6 +124,12 @@ Configuration is file-based for portability:
 - Defaults live in terraform/variables.tf
 - Optional local overrides go in terraform/terraform.tfvars (see terraform/terraform.tfvars.example)
 - Workflow settings (resource names + tfstate backend) live at the top of .github/workflows/deploy-azure.yml
+- The workflow uses TF_VAR_* environment variables to pass settings into Terraform
+
+Local infra apply (same defaults):
+```bash
+make deploy
+```
 
 Make sure your ACR name is globally unique in Azure (update both terraform/variables.tf and deploy-azure.yml if you change it).
 
