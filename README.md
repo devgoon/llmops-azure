@@ -115,6 +115,25 @@ Artifacts and run metadata go into `./mlruns/` by default. To use a remote/manag
 
 Follow: `azure/storage/create_blob.md` then `azure/aca/deploy.md`.
 
+### Azure bootstrap (one-time)
+
+Run the bootstrap script to register providers, create the tfstate storage, and set up OIDC:
+```bash
+az login
+export SUBSCRIPTION_ID=00000000-0000-0000-0000-000000000000
+export RESOURCE_GROUP=my-llmops-rg
+export LOCATION=eastus
+export TFSTATE_STORAGE_ACCOUNT=tfllmops
+export TFSTATE_CONTAINER=tfstate
+export APP_NAME=gha-llmops-azure
+export GITHUB_REPO=devgoon/llmops-azure
+export GITHUB_BRANCH=main
+
+./scripts/bootstrap_azure.sh
+```
+
+You can also put these values in `.env` instead of exporting them.
+
 ### GitHub Actions deployment
 
 This repo includes [`.github/workflows/deploy-azure.yml`](.github/workflows/deploy-azure.yml) to automatically deploy on every push to `main` (and via manual trigger).

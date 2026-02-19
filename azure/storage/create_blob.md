@@ -1,5 +1,7 @@
 # Create Azure Blob Storage for artifacts (cheap)
 
+If you want an automated setup (providers + tfstate storage + OIDC), use `./scripts/bootstrap_azure.sh` instead of the manual steps below.
+
 ```bash
 RG=my-llmops-rg
 LOC=eastus
