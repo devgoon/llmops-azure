@@ -97,13 +97,12 @@ jobs:
 
           echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
 
-      - name: Terraform apply (container app)
+      - name: Terraform apply (with image)
         shell: bash
         run: |
           set -euo pipefail
           IMAGE_URI="${{ steps.image.outputs.image_uri }}"
           terraform -chdir="$TF_DIR" apply -auto-approve \
-
             -var "container_app_enabled=true" \
             -var "image_uri=$IMAGE_URI"
 
