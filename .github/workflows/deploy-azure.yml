@@ -52,6 +52,21 @@ jobs:
             -backend-config="key=$TFSTATE_KEY" \
             -backend-config="use_azuread_auth=true"
 
+      - name: Import existing resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          RG_NAME="my-llmops-rg"
+          SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          
+          # Import resource group if it exists and isn't in state
+          if az group show -n "$RG_NAME" &>/dev/null; then
+            if ! terraform -chdir="$TF_DIR" state show azurerm_resource_group.rg &>/dev/null; then
+              echo "Importing existing resource group..."
+              terraform -chdir="$TF_DIR" import azurerm_resource_group.rg "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME"
+            fi
+          fi
+
       - name: Terraform apply (infra)
         shell: bash
         run: |
