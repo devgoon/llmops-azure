@@ -120,15 +120,12 @@ Follow: `azure/storage/create_blob.md` then `azure/aca/deploy.md`.
 This repo includes [`.github/workflows/deploy-azure.yml`](.github/workflows/deploy-azure.yml) to automatically deploy on every push to `main` (and via manual trigger).
 For pull requests, [`.github/workflows/pr-ci.yml`](.github/workflows/pr-ci.yml) runs build-only checks (Python compile + Docker build) without deploying.
 
-Set these **Repository Variables** in GitHub:
-- `AZURE_RESOURCE_GROUP`
-- `AZURE_LOCATION` (example: `eastus`)
-- `AZURE_CONTAINERAPPS_ENV`
-- `AZURE_CONTAINERAPP_NAME`
-- `AZURE_ACR_NAME` (must be globally unique in Azure)
-- `AZURE_TFSTATE_RG` (resource group containing the tfstate storage account)
-- `AZURE_TFSTATE_STORAGE` (storage account name, example: `llmops`)
-- `AZURE_TFSTATE_CONTAINER` (container name, example: `tfstate`)
+Configuration is file-based for portability:
+- Defaults live in terraform/variables.tf
+- Optional local overrides go in terraform/terraform.tfvars (see terraform/terraform.tfvars.example)
+- Workflow settings (resource names + tfstate backend) live at the top of .github/workflows/deploy-azure.yml
+
+Make sure your ACR name is globally unique in Azure (update both terraform/variables.tf and deploy-azure.yml if you change it).
 
 Set these **Repository Secrets** for OIDC auth:
 - `AZURE_CLIENT_ID`

@@ -6,12 +6,16 @@ on:
   workflow_dispatch:
 
 env:
+  RESOURCE_GROUP_NAME: my-llmops-rg
+  LOCATION: eastus
+  CONTAINERAPPS_ENVIRONMENT: llmops-env
+  CONTAINERAPP_NAME: llmops-api
+  ACR_NAME: acrllmops
   TFSTATE_RESOURCE_GROUP: my-llmops-rg
   TFSTATE_STORAGE_ACCOUNT: tfllmops
   TFSTATE_CONTAINER: tfstate
   TFSTATE_KEY: llmops-azure.tfstate
   TF_DIR: terraform
-  ACR_NAME: acrllmops
   IMAGE_NAME: llmops-api
   IMAGE_TAG: ${{ github.sha }}
 
@@ -44,10 +48,18 @@ jobs:
       - name: Register Azure resource providers
         shell: bash
         run: |
-          echo "Registering Microsoft.App provider..."
-          az provider register --namespace Microsoft.App --wait
-          echo "Registering Microsoft.OperationalInsights provider..."
-          az provider register --namespace Microsoft.OperationalInsights --wait
+          set -euo pipefail
+          APP_STATE=$(az provider show --namespace Microsoft.App --query registrationState -o tsv)
+          if [[ "$APP_STATE" != "Registered" ]]; then
+            echo "Registering Microsoft.App provider..."
+            az provider register --namespace Microsoft.App --wait
+          fi
+
+          OI_STATE=$(az provider show --namespace Microsoft.OperationalInsights --query registrationState -o tsv)
+          if [[ "$OI_STATE" != "Registered" ]]; then
+            echo "Registering Microsoft.OperationalInsights provider..."
+            az provider register --namespace Microsoft.OperationalInsights --wait
+          fi
 
       - name: Terraform init
         shell: bash
@@ -64,7 +76,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RG_NAME="my-llmops-rg"
+          RG_NAME="$RESOURCE_GROUP_NAME"
           SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           
           # Import resource group if it exists and isn't in state

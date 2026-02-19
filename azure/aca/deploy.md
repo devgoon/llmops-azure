@@ -2,6 +2,8 @@
 
 This guide deploys the FastAPI service to **Azure Container Apps** (ACA) using a tiny CPU plan that can scale to zero.
 
+If you want automated deployments, use the GitHub Actions + Terraform workflow in this repo. This document remains as a manual `az` CLI alternative.
+
 > Prereqs: Azure CLI (`az`), Docker, an Azure subscription, and a resource group.
 
 ## 1) Build and push the image
