@@ -127,8 +127,15 @@ Set these **Repository Variables** in GitHub:
 - `AZURE_CONTAINERAPP_NAME`
 - `AZURE_ACR_NAME` (must be globally unique in Azure)
 
-Set this **Repository Secret**:
-- `AZURE_CREDENTIALS` (JSON output from `az ad sp create-for-rbac --sdk-auth`)
+Set these **Repository Secrets** for OIDC auth:
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+
+OIDC setup (one-time in Azure):
+- Create an App Registration (service principal)
+- Add a Federated Credential for GitHub Actions (repo + branch)
+- Grant the app `Contributor` on the target resource group
 
 The workflow will:
 - ensure Resource Group / ACR / Container Apps Environment exist
