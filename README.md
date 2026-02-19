@@ -115,6 +115,26 @@ Artifacts and run metadata go into `./mlruns/` by default. To use a remote/manag
 
 Follow: `azure/storage/create_blob.md` then `azure/aca/deploy.md`.
 
+### GitHub Actions deployment
+
+This repo includes [`.github/workflows/deploy-azure.yml`](.github/workflows/deploy-azure.yml) to automatically deploy on every push to `main` (and via manual trigger).
+For pull requests, [`.github/workflows/pr-ci.yml`](.github/workflows/pr-ci.yml) runs build-only checks (Python compile + Docker build) without deploying.
+
+Set these **Repository Variables** in GitHub:
+- `AZURE_RESOURCE_GROUP`
+- `AZURE_LOCATION` (example: `eastus`)
+- `AZURE_CONTAINERAPPS_ENV`
+- `AZURE_CONTAINERAPP_NAME`
+- `AZURE_ACR_NAME` (must be globally unique in Azure)
+
+Set this **Repository Secret**:
+- `AZURE_CREDENTIALS` (JSON output from `az ad sp create-for-rbac --sdk-auth`)
+
+The workflow will:
+- ensure Resource Group / ACR / Container Apps Environment exist
+- build and push Docker image to ACR
+- create or update the Azure Container App
+
 ---
 
 ## 🧭 Architecture (Mermaid)

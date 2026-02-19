@@ -1,0 +1,38 @@
+name: PR CI (build + checks)
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            backend/api/requirements.txt
+            mlops/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/api/requirements.txt
+
+      - name: Syntax check (compile)
+        run: |
+          python -m compileall backend/api mlops
+
+      - name: Docker build check
+        run: |
+          docker build -t llmops-api:pr-${{ github.sha }} -f docker/Dockerfile .
