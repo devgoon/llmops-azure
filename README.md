@@ -110,6 +110,11 @@ Artifacts and run metadata go into `./mlruns/` by default. To use a remote/manag
 
 To log API requests to MLflow, set `MLFLOW_ENABLED=1` and optionally `MLFLOW_EXPERIMENT` in `.env.local`.
 
+To browse runs locally:
+```bash
+make mlflow-ui
+```
+
 ---
 
 ## ☁️ Azure (cheap) deployment

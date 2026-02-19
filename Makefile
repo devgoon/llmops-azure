@@ -4,7 +4,7 @@ TFSTATE_STORAGE_ACCOUNT := tfllmops
 TFSTATE_CONTAINER := tfstate
 TFSTATE_KEY := llmops-azure.tfstate
 
-.PHONY: terraform-init terraform-apply-infra terraform-apply-app deploy run-local
+.PHONY: terraform-init terraform-apply-infra terraform-apply-app deploy run-local mlflow-ui
 
 terraform-init:
 	terraform -chdir=$(TF_DIR) init \
@@ -28,3 +28,6 @@ deploy: terraform-apply-infra
 
 run-local:
 	./scripts/run_local.sh
+
+mlflow-ui:
+	mlflow ui --host 127.0.0.1 --port 5000
