@@ -28,12 +28,17 @@ A **minimal, low‑cost LLMOps starter** you can run on your laptop and optional
 ./
 ├─ backend/
 │  ├─ api/
-│  │  ├─ main.py            # FastAPI service
+│  │  ├─ main.py            # FastAPI service (with MLflow logging)
 │  │  └─ requirements.txt
 │  └─ tests/
 ├─ mlops/
 │  ├─ track_example.py      # MLflow example run
+│  ├─ analyze_metrics.py    # Metrics analysis & comparison tool
 │  └─ requirements.txt
+├─ scripts/
+│  ├─ run_local.sh          # Start FastAPI locally
+│  ├─ create_test_chats.sh  # Generate test requests for benchmarking
+│  └─ set_env_example.sh    # Example env vars
 ├─ azure/
 │  ├─ aca/
 │  │  ├─ deploy.md          # Step-by-step Azure deployment (cheap)
@@ -42,9 +47,9 @@ A **minimal, low‑cost LLMOps starter** you can run on your laptop and optional
 │     └─ create_blob.md     # Create Storage Account + container
 ├─ docker/
 │  └─ Dockerfile            # Container for backend/api
-├─ scripts/
-│  ├─ run_local.sh          # Start FastAPI locally
-│  └─ set_env_example.sh    # Example env vars
+├─ Makefile                 # Task automation (start-all, analyze, etc.)
+├─ .env.local.example       # Local app config template
+├─ .env.bootstrap.example   # Azure bootstrap config template
 ├─ .gitignore
 ├─ LICENSE
 └─ README.md
@@ -66,7 +71,21 @@ A **minimal, low‑cost LLMOps starter** you can run on your laptop and optional
 
 ## 🚀 Quick Start (Local)
 
-1) **Create a virtual env** and install the API:
+### Fastest way (one command):
+```bash
+make start-all
+```
+
+This will:
+1. Start the FastAPI service
+2. Launch MLflow UI
+3. Generate 5 test chats with varying temperature settings
+4. Display metrics analysis (latency, throughput, tokens)
+5. Show you the dashboard & API links
+
+### Step-by-step setup (if you prefer):
+
+1) **Create a virtual env** and install dependencies:
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r backend/api/requirements.txt
@@ -85,35 +104,81 @@ cp .env.local.example .env.local
 
 4) **Run the API**:
 ```bash
-uvicorn backend.api.main:app --reload --port 8000
+make run-local
 ```
 
-5) **Call the service**:
+5) **Test the service**:
 ```bash
-curl -s -X POST http://127.0.0.1:8000/chat -H 'Content-Type: application/json' \
-  -d '{"prompt":"Explain retrieval-augmented generation in one paragraph."}' | jq
+curl -s -X POST http://127.0.0.1:8000/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"Explain retrieval-augmented generation"}' | jq
 ```
 
-The API expects `OLLAMA_BASE_URL` to be set when running locally.
+The API expects `OLLAMA_BASE_URL` to be set (defaults to `http://localhost:11434`).
 
 ---
 
-## 🧪 Experiment Tracking (MLflow)
+## 🏃 Make Targets (Auto-tasks)
 
-Use the included example to log params/metrics locally:
+| Target | Purpose |
+|--------|---------|
+| `make start-all` | **Run everything**: API + MLflow + test chats + analysis |
+| `make run-local` | Start just the FastAPI service |
+| `make test-chats` | Generate 5 test requests (different temperatures) |
+| `make analyze` | Show metrics analysis (latency, throughput, tokens/sec) |
+| `make mlflow-ui` | Browse MLflow experiments at http://127.0.0.1:5000 |
+
+---
+
+## 🧪 Metrics & Experiment Tracking (MLflow)
+
+### API Metrics Logging
+
+The FastAPI service automatically logs detailed metrics to MLflow when `MLFLOW_ENABLED=1`:
+
+**Logged Metrics (per request):**
+- `latency_ms` — Response time in milliseconds
+- `latency_sec` — Response time in seconds (for averaging)
+- `input_tokens` — Approximate tokens in the prompt
+- `output_tokens` — Approximate tokens in the response
+- `total_tokens` — Combined input + output
+- `tokens_per_second` — Generation throughput (efficiency metric)
+- `success` — 1 for success, 0 for error
+
+**Logged Parameters:**
+- `temperature` — Randomness setting (0.0–1.0)
+- `model` — Model name (e.g., `llama3`)
+- `prompt_length` — Character count of input
+
+### Analyze Metrics
+
+After running test chats, view comprehensive metrics:
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r mlops/requirements.txt
-python mlops/track_example.py
+make analyze
 ```
-Artifacts and run metadata go into `./mlruns/` by default. To use a remote/managed MLflow, set `MLFLOW_TRACKING_URI` and `MLFLOW_ARTIFACT_URI` (e.g., to Azure Blob) before running the script.
 
-To log API requests to MLflow, set `MLFLOW_ENABLED=1` and optionally `MLFLOW_EXPERIMENT` in `.env.local`.
+This shows:
+- **Run Summary** — Each request's latency, tokens, throughput
+- **Temperature Impact** — How temperature affects response quality/speed
+- **Aggregate Statistics** — Mean, median, min, max across all runs
+- **CSV Export** — `mlruns/runs_export.csv` for custom analysis
 
-To browse runs locally:
+### Browse Experiments
+
+View all runs in an interactive dashboard:
 ```bash
 make mlflow-ui
 ```
+Then open **http://127.0.0.1:5000** to compare experiments.
+
+### Custom Experiment Tracking
+
+Use the example script to log your own runs:
+```bash
+python mlops/track_example.py
+```
+
+Artifacts and metadata go into `./mlruns/` by default. To use remote MLflow, set `MLFLOW_TRACKING_URI` and `MLFLOW_ARTIFACT_URI` (e.g., Azure Blob).
 
 ---
 
@@ -208,10 +273,55 @@ flowchart LR
 
 ---
 
-## 🧩 Next steps
+## 🧩 Next Steps
 
-- Add embeddings + ChromaDB calls into `backend/api/main.py` for a local RAG demo
-- Point MLflow to Azure Blob for shared artifacts
-- Add CI (GitHub Actions) to build & push the image, then `az containerapp up`
+### Performance Tuning
+- Use `make analyze` to identify bottlenecks (latency, throughput)
+- Compare temperatures via the **Temperature Impact** analysis
+- Export metrics to CSV (`mlruns/runs_export.csv`) for custom analysis
+- Monitor `tokens_per_second` to optimize for inference speed vs cost
+
+### Feature Development
+- Add embeddings + ChromaDB calls to `backend/api/main.py` for RAG demo
+- Integrate vector search into `/chat` endpoint
+- Add cost estimation metrics (tokens × price per model)
+- Compare different Ollama models (mistral, neural-chat, etc.)
+
+### Scaling & Deployment
+- Point MLflow to Azure Blob for persistent artifact storage
+- Deploy API to Azure Container Apps (CPU for inference)
+- Set up ACA Jobs (GPU) for model fine-tuning via batch requests
+- Add GitHub Actions CI/CD (already configured in `.github/workflows/`)
+
+---
+## ⚙️ Environment Configuration
+
+Two separate configs keep concerns isolated:
+
+### `.env.local` — Local App Runtime
+For running the API locally. Includes:
+- `OLLAMA_BASE_URL` — Ollama server address
+- `OLLAMA_MODEL` — Model to use (default: `llama3`)
+- `APP_HOST` / `APP_PORT` — API binding
+- `MLFLOW_ENABLED` — Enable/disable metric logging (0 or 1)
+
+Start from `.env.local.example`:
+```bash
+cp .env.local.example .env.local
+```
+
+### `.env.bootstrap` — Azure Infrastructure Setup
+For one-time Azure bootstrap and Terraform state. Used by:
+- `scripts/bootstrap_azure.sh` — Register providers, create tfstate storage
+- `Makefile deploy` — Terraform apply
+
+Start from `.env.bootstrap.example`:
+```bash
+cp .env.bootstrap.example .env.bootstrap
+```
+
+Both are Git-ignored for security.
+
+---
 
 PRs welcome. MIT licensed.
