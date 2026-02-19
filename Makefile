@@ -4,7 +4,7 @@ TFSTATE_STORAGE_ACCOUNT := tfllmops
 TFSTATE_CONTAINER := tfstate
 TFSTATE_KEY := llmops-azure.tfstate
 
-.PHONY: terraform-init terraform-apply-infra terraform-apply-app deploy run-local mlflow-ui test-chats start-all
+.PHONY: terraform-init terraform-apply-infra terraform-apply-app deploy run-local mlflow-ui test-chats start-all analyze
 
 terraform-init:
 	terraform -chdir=$(TF_DIR) init \
@@ -54,3 +54,6 @@ start-all:
 	@echo "🧪 API: http://127.0.0.1:8000/docs (Swagger UI)"
 	@echo ""
 	@echo "💡 Tip: View logs with 'tail -f /tmp/api.log' or 'tail -f /tmp/mlflow.log'"
+
+analyze:
+	. .venv/bin/activate && python mlops/analyze_metrics.py
