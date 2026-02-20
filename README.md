@@ -31,21 +31,19 @@ A **minimal, low‑cost LLMOps starter** you can run 100% on your laptop. It fav
 │  │  └─ requirements.txt
 │  └─ tests/
 ├─ mlops/
-│  ├─ track_example.py      # MLflow example run
 │  ├─ analyze_metrics.py    # Metrics analysis & comparison tool
-│  └─ requirements.txt
+│  ├─ requirements.txt
+│  └─ track_example.py      # MLflow example run
 ├─ scripts/
-│  ├─ run_local.sh          # Start FastAPI locally
 │  ├─ create_test_chats.sh  # Generate test requests for benchmarking
+│  ├─ run_local.sh          # Start FastAPI locally
 │  └─ set_env_example.sh    # Example env vars
 ├─ docker/
 │  └─ Dockerfile            # Container for backend/api
-├─ docker/
-│  └─ Dockerfile            # Container for backend/api
-├─ Makefile                 # Task automation (start-all, analyze, etc.)
 ├─ .env.local.example       # Local app config template
 ├─ .gitignore
 ├─ LICENSE
+├─ Makefile                 # Task automation (start-all, analyze, etc.)
 └─ README.md
 ```
 
